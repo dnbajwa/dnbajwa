@@ -1,0 +1,21 @@
+#ifndef MEMORYALLOCATOR_H
+#define MEMORYALLOCATOR_H
+
+class MemoryAllocator {
+private:
+    char* memoryPool;
+    bool* isAllocated;
+    size_t poolSize;
+    size_t blockSize;
+    size_t totalBlocks;
+
+public:
+    MemoryAllocator(size_t totalSize, size_t blockSize);
+    ~MemoryAllocator();
+    
+    void* allocate();
+    void deallocate(void* ptr);
+    void displayMemoryStatus() const;
+};
+
+#endif
