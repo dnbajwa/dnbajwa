@@ -19,3 +19,83 @@ public:
 };
 
 #endif
+#include "MemoryAllocator.h"
+#include <iostream>
+#include <stdexcept>
+
+MemoryAllocator::MemoryAllocator(size_t totalSize, size_t blockSize) 
+    : poolSize(totalSize), blockSize(blockSize) {
+    if (blockSize == 0 || totalSize % blockSize != 0) {
+        throw std::invalid_argument("Invalid block size or total size");
+    }
+    
+    totalBlocks = totalSize / blockSize;
+    memoryPool = new char[totalSize];
+    isAllocated = new bool[totalBlocks]{false};
+}
+
+MemoryAllocator::~MemoryAllocator() {
+    delete[] memoryPool;
+    delete[] isAllocated;
+}
+
+void* MemoryAllocator::allocate() {
+    for (size_t i = 0; i < totalBlocks; ++i) {
+        if (!isAllocated[i]) {
+            isAllocated[i] = true;
+            return memoryPool + (i * blockSize);
+        }
+    }
+    return nullptr; // No available blocks
+}
+
+void MemoryAllocator::deallocate(void* ptr) {
+    if (ptr == nullptr) return;
+    
+    char* bytePtr = static_cast<char*>(ptr);
+    if (bytePtr < memoryPool || bytePtr >= memoryPool + poolSize) {
+        throw std::invalid_argument("Pointer not from this allocator");
+    }
+    
+    size_t blockIndex = (bytePtr - memoryPool) / blockSize;
+    isAllocated[blockIndex] = false;
+}
+
+void MemoryAllocator::displayMemoryStatus() const {
+    std::cout << "Memory Status:\n";
+    for (size_t i = 0; i < totalBlocks; ++i) {
+        std::cout << "Block " << i << ": " 
+                  << (isAllocated[i] ? "Allocated" : "Free") << "\n";
+    }
+}
+#include "MemoryAllocator.h"
+#include <iostream>
+
+int main() {
+    const size_t TOTAL_SIZE = 1024; // 1KB
+    const size_t BLOCK_SIZE = 64;   // 64-byte blocks
+    
+    try {
+        MemoryAllocator allocator(TOTAL_SIZE, BLOCK_SIZE);
+        
+        // Allocate some blocks
+        void* block1 = allocator.allocate();
+        void* block2 = allocator.allocate();
+        
+        allocator.displayMemoryStatus();
+        
+        // Deallocate a block
+        allocator.deallocate(block1);
+        
+        allocator.displayMemoryStatus();
+        
+        // Allocate again
+        void* block3 = allocator.allocate();
+        allocator.displayMemoryStatus();
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+    
+    return 0;
+}
